@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# TODO:
+#   * add a quiet output mode (no extra output, just the output from the jexec call)
+#   * add an option to also run the command on the host
+#   * add an option to clear the environment before running the command? (env - command)
+#   * add an option to run command(s) in a shell? or is sh -c 'command' easy enough?
+#   * add an option to ask for confirmation on each jail before running the command
+#       (handy for selective tasks or when running commands that overwrite output and
+#        make you not see the jail name that the command is currently running on)
+
+# Link file descriptor #6 with stdin. Saves stdin.
+#exec 6<&0
+
+jls host.hostname jid ip4.addr ip6.addr | sort | while read hostname jid ips
+do
+    echo '===>>>' $hostname \($jid\) \($ips\)
+    # Restore stdin from fd #6 and close fd #6
+    # to free it for other processes to use.
+    # Stdin was lost when using the pipes for sort and while.
+    #exec 0<&6 6<&-
+    # This makes sure that jexec below receives the same
+    # stdin as jexec_all.
+    # This fixes expected behavior when using commands that
+    # expect tty input or when doing input rerouting on the
+    # jexec_all command and expecting the same behavior as
+    # from the standard jexec command.
+    #jexec $jid "$@" 0<&6
+    jexec $jid "$@" </dev/tty
+    echo
+    # THIS IS ALL PRETTY COOL AND INTERESTING,
+    # BUT THE ONLY UNAMBIGOUS BEHAVIOUR IS IF
+    # JEXEC GETS /dev/tty AS INPUT.
+    # FILES OR PIPES DONT MAKE SENSE:
+    # ONLY THE FIRST JAIL WILL RECEIVE IT
+    # OR SHOULD THEY ALL RECEIVE IT? WE CAN'T REPLAY THE INPUT!
+    # OR SHOULD WE tee IT? BUT THEN THE COMMANDS NEED TO RUN IN
+    # PARALLEL? WHAT DO WE DO WITH THE OUTPUT THEN???
+done

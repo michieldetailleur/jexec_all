@@ -1,0 +1,3 @@
+Wrapper around FreeBSD jexec utility to execute a command on all jails automatically.
+
+Has no dependencies outside FreeBSD base system.
